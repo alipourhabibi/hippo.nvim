@@ -1,0 +1,64 @@
+*hippo.txt*  A front page for your notes
+
+==============================================================================
+CONTENTS                                                      *hippo-contents*
+
+  1. Setup ............................................ |hippo-setup|
+  2. Keys ............................................. |hippo-keys|
+  3. Commands ......................................... |hippo-commands|
+  4. Tasks ............................................ |hippo-tasks|
+
+The README has the long version with pictures.
+
+==============================================================================
+1. SETUP                                                         *hippo-setup*
+
+>lua
+    require("hippo").setup({ path = "~/notes" })
+<
+Only `path` is needed. See the README for every option.
+
+Opening nvim inside the vault with no file opens the dashboard as the first
+tab. The left pane is `dashboard.main`, the right pane shows one of
+`dashboard.tabs` at a time.
+
+==============================================================================
+2. KEYS                                                           *hippo-keys*
+
+  <M-b>        go to the dashboard, or back to the last tab
+  <M-1>..<M-9> show that tab on the right
+  <M-0>        hide or show the right pane
+  <M-a>        add the current note as a tab, until nvim closes
+  <M-n>        capture a thought, <Tab> switches where it goes
+  <M-c>        open or hide Claude
+
+In the agenda and the header:
+
+  <CR>         open the task under the cursor
+  x            mark it done or not done
+  C            carry open tasks from the last daily note to today
+  S            sync the vault with git
+  r            refresh
+  q            back to the last tab
+  ?            show the keys
+
+==============================================================================
+3. COMMANDS                                                   *hippo-commands*
+
+                                                                      *:Hippo*
+:Hippo [action]
+    Without an action it goes to the dashboard or back. Actions: `toggle`,
+    `refresh`, `help`, `carry`, `sync`, `capture`, `claude`, `addtab`,
+    `side` (hide or show the right pane), `tab {n}` (show tab n).
+
+==============================================================================
+4. TASKS                                                         *hippo-tasks*
+
+Tasks are markdown checkboxes in the Obsidian Tasks format:
+>markdown
+    - [ ] pay rent #task 📅 2026-10-30 ⏫
+<
+Tasks tagged with `task_tag` (default `#task`) count for projects and show in
+the agenda. Tasks with a `📅` date show in the agenda even without the tag.
+
+ vim:tw=78:ts=8:ft=help:norl:
