@@ -19,8 +19,8 @@ end
 -- an entry in dashboard or capture config: "today", "agenda", a name from
 -- config.notes, or a path in the vault; agenda has no path
 function M.entry(entry)
-    if entry == "agenda" then
-        return { label = "agenda" }
+    if entry == "agenda" or entry == "time" then
+        return { label = entry }
     elseif entry == "today" then
         return { label = "today", path = M.today() }
     elseif cfg().notes[entry] then

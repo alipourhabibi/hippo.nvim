@@ -31,6 +31,8 @@ tab. The left pane is `dashboard.main`, the right pane shows one of
   <M-a>        add the current note as a tab, until nvim closes
   <M-n>        capture a thought, <Tab> switches where it goes
   <M-c>        open or hide Claude
+  <M-t>        start or stop the work timer
+  <M-p>        start or stop a pomodoro
 
 In the agenda and the header:
 
@@ -49,7 +51,9 @@ In the agenda and the header:
 :Hippo [action]
     Without an action it goes to the dashboard or back. Actions: `toggle`,
     `refresh`, `help`, `carry`, `sync`, `capture`, `claude`, `addtab`,
-    `side` (hide or show the right pane), `tab {n}` (show tab n).
+    `timer`, `pomodoro`, `side` (hide or show the right pane), `tab {n}`
+    (show tab n), `report [range] [activity]`. A range is `today`, `week`,
+    `month`, `last-month`, `2026-10` or `2026-10-01..2026-10-15`.
 
 ==============================================================================
 4. TASKS                                                         *hippo-tasks*

@@ -69,6 +69,8 @@ You only need `path`. Here's everything, with the defaults:
         claude = "<M-c>",
         capture = "<M-n>",
         add_tab = "<M-a>",
+        timer = "<M-t>",
+        pomodoro = "<M-p>",
     },
     -- open tasks with this tag count for projects and show in the agenda
     task_tag = "#task",
@@ -90,6 +92,12 @@ You only need `path`. Here's everything, with the defaults:
     inbox = { "0-Inbox" },
     projects = "1-Projects",
     sync_message = "vault sync %Y-%m-%d %H:%M",
+    timer = {
+        note = "timings/timings.md",   -- activities, running timer, log
+        reports = "timings/reports",   -- where saved reports go
+        long = 10,                     -- hours, asks when a timer ran longer
+    },
+    pomodoro = { focus = 25, short = 5, long = 15, every = 4 },
     claude_cmd = { "claude" },
     claude_size = { width = 0.9, height = 0.45 },
 }
@@ -121,6 +129,7 @@ They all take the same kind of entry:
 
 - `"today"`: today's daily note
 - `"agenda"`: the task list built from your whole vault (not for capture)
+- `"time"`: your timer, this week and last sessions (not for capture)
 - a name from `notes`, like `"todo"`
 - any md file in your vault, like `"3-Resources/books/some-book.md"`. The tab gets
   the file's name.
@@ -139,6 +148,8 @@ Keys are written the Neovim way: `<M-b>` is Alt+b, `<CR>` is Enter, `<C-h>` is C
 | `<M-a>` | add the note you're in as a tab, until you close Neovim |
 | `<M-n>` | capture a thought, `Tab` switches where it goes |
 | `<M-c>` | open or hide Claude |
+| `<M-t>` | start or stop the work timer |
+| `<M-p>` | start or stop a pomodoro |
 
 You can Move between the two panes like any
 split, with `Ctrl+w h` and `Ctrl+w l` (or `Ctrl+h` / `Ctrl+l` if you use
@@ -158,8 +169,8 @@ In the agenda and the header:
 | `?` | show the keys |
 
 Everything is also a command: `:Hippo` plus one of `toggle`, `refresh`, `help`,
-`carry`, `sync`, `capture`, `claude`, `addtab`, `side` (hide or show the right pane),
-or `tab <n>` (show tab n on the right).
+`carry`, `sync`, `capture`, `claude`, `addtab`, `timer`, `pomodoro`, `side` (hide or
+show the right pane), `tab <n>` (show tab n on the right), or `report [range] [activity]`.
 
 ## The dashboard
 
@@ -207,6 +218,17 @@ gets them too.
 - **Habits:** put `## Habits` with `- [ ] walk` style items in your daily template.
 - **Capture (`Alt+n`):** type, Enter, done. `Tab` picks the note.
 - **Claude (`Alt+c`):** Claude Code in a float, inside your vault. Hiding it keeps the chat.
+- **Timer (`Alt+t`):** pick what you work on, say what you do, go. `Alt+t` again stops it
+  and writes a row to the log table in your `timer.note`. Put your activities under
+  `## Activities` there, like `- acme 30$/h` (the rate is optional). Forgot to stop it
+  overnight? It asks when you really stopped.
+- **Reports (`:Hippo report` or `R`):** time per activity for today, a week, a month,
+  `2026-10` or `2026-10-01..2026-10-15`, with money when there's a rate, and every
+  session. `w` saves it as a note, ready to send to a client.
+- **Time tab:** put `"time"` in your tabs to see what's running, this week per activity
+  and your last sessions.
+- **Pomodoro (`Alt+p`):** 25 min focus, then a break, with a desktop notification. It
+  only reminds you, it doesn't touch the timer.
 - **Sync (`S`):** asks, then commits, pulls with rebase and pushes. Stops on any git error.
 - **Today's note:** if it doesn't exist yet, hippo fills it from your template but only saves when you do.
 

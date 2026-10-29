@@ -7,6 +7,8 @@ M.config = {
         claude = "<M-c>",
         capture = "<M-n>",
         add_tab = "<M-a>",
+        timer = "<M-t>",
+        pomodoro = "<M-p>",
     },
     -- open tasks with this tag are counted for projects and shown in the agenda
     task_tag = "#task",
@@ -37,6 +39,16 @@ M.config = {
     projects = "1-Projects",
     -- os.date format for the sync commit
     sync_message = "vault sync %Y-%m-%d %H:%M",
+    timer = {
+        -- activities, the running timer and the log
+        note = "timings/timings.md",
+        -- where saved reports go
+        reports = "timings/reports",
+        -- hours; a timer running longer asks when it really stopped
+        long = 10,
+    },
+    -- minutes; a long break after every few focus blocks
+    pomodoro = { focus = 25, short = 5, long = 15, every = 4 },
     claude_cmd = { "claude" },
     claude_size = { width = 0.9, height = 0.45 },
 }
@@ -85,6 +97,8 @@ function M.setup(opts)
         end, { desc = "Hippo tab " .. i })
     end
     vim.keymap.set("n", keys.add_tab, dashboard.add_tab, { desc = "Hippo add note as tab" })
+    vim.keymap.set("n", keys.timer, require("hippo.timer").toggle, { desc = "Hippo start or stop the timer" })
+    vim.keymap.set("n", keys.pomodoro, require("hippo.pomodoro").toggle, { desc = "Hippo pomodoro" })
     vim.keymap.set("n", "<M-0>", dashboard.toggle_side, { desc = "Hippo hide or show the right pane" })
 
     local actions = {
@@ -100,6 +114,16 @@ function M.setup(opts)
         capture = capture.open,
         claude = claude.toggle,
         addtab = dashboard.add_tab,
+        timer = require("hippo.timer").toggle,
+        pomodoro = require("hippo.pomodoro").toggle,
+        -- :Hippo report [today|week|month|last-month|YYYY-MM|from..to] [activity]
+        report = function(range, activity)
+            if range then
+                require("hippo.report").open(range, activity)
+            else
+                require("hippo.report").pick()
+            end
+        end,
         tab = function(n)
             dashboard.tab(tonumber(n) or 1)
         end,
@@ -110,7 +134,7 @@ function M.setup(opts)
         if not actions[name] then
             return vim.notify("hippo: no action " .. name, vim.log.levels.ERROR)
         end
-        actions[name](o.fargs[2])
+        actions[name](o.fargs[2], o.fargs[3])
     end, {
         nargs = "*",
         complete = function(_, line)

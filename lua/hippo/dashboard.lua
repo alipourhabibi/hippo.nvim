@@ -2,6 +2,9 @@ local vault = require("hippo.vault")
 local tasks = require("hippo.tasks")
 local journal = require("hippo.journal")
 local git = require("hippo.git")
+local timer = require("hippo.timer")
+local pomodoro = require("hippo.pomodoro")
+local report = require("hippo.report")
 
 local M = {}
 
@@ -21,6 +24,8 @@ local icons = {
     git = "\u{f1d3}",
     journal = "\u{f06d}",
     habit = "\u{f004}",
+    time = "\u{f254}",
+    coffee = "\u{f0f4}",
 }
 
 local wins = {}         -- "header", "main" and "side" windows
@@ -30,6 +35,7 @@ local git_state
 local agenda_items = {} -- agenda row to task
 local current = 1       -- which tab the side pane shows
 local scratch           -- defined in layout, drawing needs it before that
+local ticker            -- redraws the clocks every second
 
 local function opts()
     return require("hippo").config.dashboard
@@ -189,6 +195,40 @@ local function with_hippo(rows)
     return rows
 end
 
+local function clock(secs)
+    return ("%d:%02d:%02d"):format(math.floor(secs / 3600), math.floor(secs / 60) % 60, secs % 60)
+end
+
+-- the running timer, today's total and the pomodoro; nil when there is nothing
+local function timer_row()
+    local row = {}
+    local r = data.running
+    local today = data.today_mins
+    if r then
+        local mins = timer.elapsed(r)
+        local late = mins > require("hippo").config.timer.long * 60
+        vim.list_extend(row, {
+            { icons.time .. " " .. r.name .. " " .. clock(timer.seconds(r)), late and "HippoOverdue" or "HippoDue" },
+            { r.what ~= "" and ("  " .. r.what) or "", "HippoDim" },
+        })
+        today = today + mins
+    end
+    if today > 0 then
+        table.insert(row, { "    today " .. timer.format(today), "HippoCount" })
+    end
+    local phase, left, done = pomodoro.status()
+    if phase then
+        table.insert(row, {
+            ("    %s %s %02d:%02d"):format(phase == "focus" and "🍅" or icons.coffee, phase, math.floor(left / 60), left % 60),
+            phase == "focus" and "HippoOverdue" or "HippoOk",
+        })
+    end
+    if done > 0 then
+        table.insert(row, { "  🍅x" .. done, "HippoDim" })
+    end
+    return #row > 0 and build(row) or nil
+end
+
 local function box_rows()
     local projects = {}
     for _, p in ipairs(data.projects) do
@@ -205,15 +245,16 @@ local function box_rows()
         end
     end
 
-    local rows = {
-        status_row(),
+    local rows = { status_row() }
+    table.insert(rows, timer_row())
+    vim.list_extend(rows, {
         build(projects),
         build({
             { icons.journal .. " journal ",      "HippoIcon" },
             { data.heat,                         "HippoHeat" },
             { "  streak " .. data.streak .. "d", hl_if(data.streak, "HippoOk") },
         }),
-    }
+    })
 
     if #data.habits > 0 then
         local row = { { icons.habit .. " ", "HippoIcon" } }
@@ -235,7 +276,14 @@ local function draw_header()
     local width = vim.api.nvim_win_get_width(wins.header)
     local rows
     if opts().header == "line" then
-        rows = { fit(status_row(), width) }
+        local row, t = status_row(), timer_row()
+        if t then
+            for _, m in ipairs(t.marks) do
+                table.insert(row.marks, { m[1] + #row.text + 4, m[2] + #row.text + 4, m[3] })
+            end
+            row.text = row.text .. "    " .. t.text
+        end
+        rows = { fit(row, width) }
     else
         rows = boxed(box_rows(), width, " hippo ")
     end
@@ -273,6 +321,74 @@ local function draw_agenda()
         rows = { build({ { " nothing due. tag a task with " .. tag .. " or give it 📅 YYYY-MM-DD", "HippoDim" } }) }
     end
     draw(scratch("agenda"), rows)
+end
+
+------------------------------------------------------------------ time
+
+local function draw_time()
+    local rows = {}
+    local r = data.running
+    if r then
+        table.insert(rows, build({
+            { " " .. icons.time .. " running  ", "HippoTitle" },
+            { r.name .. " " .. clock(timer.seconds(r)), "HippoDue" },
+            { "  " .. r.what, "HippoDim" },
+        }))
+    else
+        table.insert(rows, build({ { " nothing running, t starts a timer", "HippoDim" } }))
+    end
+    local phase, left, done = pomodoro.status()
+    table.insert(rows, build({
+        phase and { (" 🍅 %s %02d:%02d"):format(phase, math.floor(left / 60), left % 60), "HippoDue" }
+            or { " p starts a pomodoro", "HippoDim" },
+        { done > 0 and ("   %d done today"):format(done) or "", "HippoDim" },
+    }))
+
+    -- this week per activity, most time first
+    local from, to = report.range("week")
+    local sums, order, total = {}, {}, 0
+    for _, e in ipairs(data.log) do
+        if e.date >= from and e.date <= to then
+            if not sums[e.name] then
+                sums[e.name] = 0
+                table.insert(order, e.name)
+            end
+            sums[e.name] = sums[e.name] + e.mins
+            total = total + e.mins
+        end
+    end
+    table.sort(order, function(a, b)
+        return sums[a] > sums[b]
+    end)
+    local rates = {}
+    for _, a in ipairs(data.activities) do
+        rates[a.name] = a
+    end
+    table.insert(rows, build({}))
+    table.insert(rows, build({ { " this week  " .. timer.format(total), "HippoTitle" } }))
+    for _, name in ipairs(order) do
+        table.insert(rows, build({
+            { ("   %-14s "):format(name) },
+            { bar(sums[name], sums[order[1]]), "HippoBar" },
+            { ("  %7s"):format(timer.format(sums[name])), "HippoCount" },
+            { "  " .. report.money(sums[name], rates[name]), "HippoDim" },
+        }))
+    end
+
+    table.insert(rows, build({}))
+    table.insert(rows, build({ { " last sessions", "HippoTitle" } }))
+    for i = #data.log, math.max(1, #data.log - 7), -1 do
+        local e = data.log[i]
+        table.insert(rows, build({
+            { "   " .. e.date:sub(6) .. "  " .. e.start .. "-" .. e.finish, "HippoDim" },
+            { ("  %6s  "):format(timer.format(e.mins)), "HippoCount" },
+            { e.name .. "  " },
+            { e.what, "HippoDim" },
+        }))
+    end
+    table.insert(rows, build({}))
+    table.insert(rows, build({ { " t timer   p pomodoro   R report", "HippoDim" } }))
+    draw(scratch("time"), rows)
 end
 
 ------------------------------------------------------------------ winbars
@@ -324,7 +440,18 @@ function M.refresh(fetch)
     data.heat, data.streak = journal.heat(28)
     data.habits = journal.habits()
     data.wrote_today = vim.uv.fs_stat(vault.today()) ~= nil
+    local lines = timer.read()
+    data.running = timer.running(lines)
+    data.activities = timer.activities(lines)
+    data.log = timer.log(lines)
+    data.today_mins = 0
+    for _, e in ipairs(data.log) do
+        if e.date == vault.date(0) then
+            data.today_mins = data.today_mins + e.mins
+        end
+    end
     draw_agenda()
+    draw_time()
     draw_header()
     set_winbars()
     git.status(function(s)
@@ -373,6 +500,8 @@ function M.help()
         "  <M-1..9>   show that tab on the right (or click it)",
         "  <M-0>      hide or show the right pane",
         "  " .. keys.add_tab .. "      add the note I am in as a tab",
+        "  " .. keys.timer .. "      start or stop the work timer",
+        "  " .. keys.pomodoro .. "      start or stop a pomodoro",
         "  <C-h/l>    go to the left or right pane",
         "  <CR>       follow link or toggle checkbox (obsidian.nvim)",
         "",
@@ -381,6 +510,8 @@ function M.help()
         "  x          done or undone",
         "  C          carry open tasks from the last daily",
         "  S          sync the vault with git",
+        "  t / p      timer / pomodoro",
+        "  R          time report",
         "  r          refresh",
         "  q          back",
     }
@@ -424,6 +555,9 @@ function scratch(name)
             M.refresh()
         end)
         map("?", M.help)
+        map("t", timer.toggle)
+        map("p", pomodoro.toggle)
+        map("R", report.pick)
         if name == "agenda" then
             map("<CR>", open_task)
             map("x", toggle_task)
@@ -437,7 +571,7 @@ end
 local function entry_buf(entry)
     local e = resolve(entry)
     if not e.path then
-        return scratch("agenda")
+        return scratch(e.label)
     end
     local buf = vault.load(e.path)
     vim.bo[buf].buflisted = true
@@ -578,6 +712,14 @@ function M.open()
     end
 
     autocmds()
+    -- keep the clocks moving while something runs
+    ticker = ticker or vim.uv.new_timer()
+    ticker:start(1000, 1000, vim.schedule_wrap(function()
+        if find_tab() and data.agenda and (data.running or pomodoro.status()) then
+            draw_header()
+            draw_time()
+        end
+    end))
     M.refresh(true)
     vim.api.nvim_set_current_win(wins.main)
 end
