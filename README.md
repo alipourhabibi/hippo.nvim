@@ -211,6 +211,18 @@ Only `#task` tasks count (so long checklists don't). `üìÖ` is the due date, `‚è
 priority, same as [Obsidian Tasks](https://publish.obsidian.md/tasks/), so your phone
 gets them too.
 
+### One place for tasks
+
+With `notes.todo` set, the todo note holds every task and today's note keeps what got done:
+
+- Tick a task under `## Today`, `## Tomorrow` or `## Buy` and save: it moves to today's
+  `## Done today`. Untick it there and it goes back to `## Today`.
+- The first open of a day (the dashboard, or after a sync) unticks `## Must`, `## DO` and
+  `## Love`, and moves open `## Tomorrow` tasks to `## Today`. A `hippo-day:` line in the todo
+  note's frontmatter marks the day, so the phone and the laptop roll it once.
+
+Run the checks with `nvim --headless -u NONE -l tests/todo_test.lua`.
+
 ## The rest
 
 - **Agenda:** overdue, today, next 7 days, and `#task` tasks with no date. Enter opens one, `x` marks it done.

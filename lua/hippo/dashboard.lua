@@ -720,6 +720,8 @@ function M.open()
             draw_time()
         end
     end))
+    -- the first open of a day unticks the routines and brings Tomorrow to Today
+    require("hippo.todo").new_day_files()
     M.refresh(true)
     vim.api.nvim_set_current_win(wins.main)
 end

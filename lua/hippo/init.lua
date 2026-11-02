@@ -86,6 +86,7 @@ function M.setup(opts)
 
     set_highlights()
     vim.api.nvim_create_autocmd("ColorScheme", { callback = set_highlights })
+    require("hippo.todo").setup()
 
     local keys = M.config.keys
     vim.keymap.set({ "n", "t" }, keys.dashboard, dashboard.toggle, { desc = "Hippo dashboard" })

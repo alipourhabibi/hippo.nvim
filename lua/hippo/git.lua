@@ -66,6 +66,9 @@ function M.sync(no_confirm)
         vim.schedule(function()
             if r.code == 0 then
                 vim.notify("hippo: synced")
+                vim.cmd.checktime()
+                -- after the pull, so a day the phone rolled already is not rolled again
+                require("hippo.todo").new_day_files()
             else
                 vim.notify("hippo: sync failed\n" .. r.stderr, vim.log.levels.ERROR)
             end
