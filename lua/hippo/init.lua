@@ -9,6 +9,7 @@ M.config = {
         add_tab = "<M-a>",
         timer = "<M-t>",
         pomodoro = "<M-p>",
+        countdown = "<M-d>",
     },
     -- open tasks with this tag are counted for projects and shown in the agenda
     task_tag = "#task",
@@ -100,6 +101,7 @@ function M.setup(opts)
     vim.keymap.set("n", keys.add_tab, dashboard.add_tab, { desc = "Hippo add note as tab" })
     vim.keymap.set("n", keys.timer, require("hippo.timer").toggle, { desc = "Hippo start or stop the timer" })
     vim.keymap.set("n", keys.pomodoro, require("hippo.pomodoro").toggle, { desc = "Hippo pomodoro" })
+    vim.keymap.set("n", keys.countdown, require("hippo.countdown").toggle, { desc = "Hippo countdown" })
     vim.keymap.set("n", "<M-0>", dashboard.toggle_side, { desc = "Hippo hide or show the right pane" })
 
     local actions = {
@@ -117,6 +119,7 @@ function M.setup(opts)
         addtab = dashboard.add_tab,
         timer = require("hippo.timer").toggle,
         pomodoro = require("hippo.pomodoro").toggle,
+        countdown = require("hippo.countdown").toggle,
         -- :Hippo report [today|week|month|last-month|YYYY-MM|from..to] [activity]
         report = function(range, activity)
             if range then

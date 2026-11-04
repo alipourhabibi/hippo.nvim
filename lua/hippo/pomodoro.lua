@@ -2,19 +2,23 @@
 -- It only reminds, it never touches the work timer.
 local M = {}
 
-local state = { phase = nil, ends = nil, done = 0, day = nil }
+local state = { phase = nil, ends = nil, done = 0, day = nil, win = nil }
 local clock
 
 local function cfg()
     return require("hippo").config.pomodoro
 end
 
--- in nvim and on the desktop, so it reaches me outside nvim too
+-- in nvim and on the desktop, a click brings me back to where I started it
 local function notify(msg)
-    vim.notify("hippo: " .. msg)
-    if vim.fn.executable("notify-send") == 1 then
-        vim.system({ "notify-send", "hippo", msg })
-    end
+    local win = state.win
+    require("hippo.notify").send(msg, {
+        on_click = function()
+            if win and vim.api.nvim_win_is_valid(win) then
+                vim.api.nvim_set_current_win(win)
+            end
+        end,
+    })
 end
 
 local finish
@@ -49,6 +53,7 @@ function M.toggle()
         state.phase = nil
         vim.notify("hippo: pomodoro stopped")
     else
+        state.win = vim.api.nvim_get_current_win()
         start("focus", cfg().focus)
         vim.notify(("hippo: focus for %d min"):format(cfg().focus))
     end

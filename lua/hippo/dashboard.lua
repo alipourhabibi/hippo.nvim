@@ -4,6 +4,7 @@ local journal = require("hippo.journal")
 local git = require("hippo.git")
 local timer = require("hippo.timer")
 local pomodoro = require("hippo.pomodoro")
+local countdown = require("hippo.countdown")
 local report = require("hippo.report")
 
 local M = {}
@@ -26,6 +27,7 @@ local icons = {
     habit = "\u{f004}",
     time = "\u{f254}",
     coffee = "\u{f0f4}",
+    bell = "\u{f0f3}",
 }
 
 local wins = {}         -- "header", "main" and "side" windows
@@ -226,6 +228,12 @@ local function timer_row()
     if done > 0 then
         table.insert(row, { "  🍅x" .. done, "HippoDim" })
     end
+    local name, secs, over = countdown.status()
+    if name then
+        local label = icons.bell .. " " .. (name ~= "" and name .. " " or "")
+        table.insert(row, over and { "    " .. label .. "done ✓", "HippoOk" }
+            or { "    " .. label .. clock(secs), "HippoDue" })
+    end
     return #row > 0 and build(row) or nil
 end
 
@@ -343,6 +351,13 @@ local function draw_time()
             or { " p starts a pomodoro", "HippoDim" },
         { done > 0 and ("   %d done today"):format(done) or "", "HippoDim" },
     }))
+    local name, secs, over = countdown.status()
+    if name then
+        table.insert(rows, build({
+            { " " .. icons.bell .. " " .. (name ~= "" and name .. " " or ""), "HippoTitle" },
+            over and { "done ✓, d clears it", "HippoOk" } or { clock(secs), "HippoDue" },
+        }))
+    end
 
     -- this week per activity, most time first
     local from, to = report.range("week")
@@ -387,7 +402,7 @@ local function draw_time()
         }))
     end
     table.insert(rows, build({}))
-    table.insert(rows, build({ { " t timer   p pomodoro   R report", "HippoDim" } }))
+    table.insert(rows, build({ { " t timer   p pomodoro   d countdown   R report", "HippoDim" } }))
     draw(scratch("time"), rows)
 end
 
@@ -502,6 +517,7 @@ function M.help()
         "  " .. keys.add_tab .. "      add the note I am in as a tab",
         "  " .. keys.timer .. "      start or stop the work timer",
         "  " .. keys.pomodoro .. "      start or stop a pomodoro",
+        "  " .. keys.countdown .. "      start, stop or clear a countdown",
         "  <C-h/l>    go to the left or right pane",
         "  <CR>       follow link or toggle checkbox (obsidian.nvim)",
         "",
@@ -510,7 +526,7 @@ function M.help()
         "  x          done or undone",
         "  C          carry open tasks from the last daily",
         "  S          sync the vault with git",
-        "  t / p      timer / pomodoro",
+        "  t / p / d  timer / pomodoro / countdown",
         "  R          time report",
         "  r          refresh",
         "  q          back",
@@ -557,6 +573,7 @@ function scratch(name)
         map("?", M.help)
         map("t", timer.toggle)
         map("p", pomodoro.toggle)
+        map("d", countdown.toggle)
         map("R", report.pick)
         if name == "agenda" then
             map("<CR>", open_task)
@@ -715,7 +732,7 @@ function M.open()
     -- keep the clocks moving while something runs
     ticker = ticker or vim.uv.new_timer()
     ticker:start(1000, 1000, vim.schedule_wrap(function()
-        if find_tab() and data.agenda and (data.running or pomodoro.status()) then
+        if find_tab() and data.agenda and (data.running or pomodoro.status() or countdown.status()) then
             draw_header()
             draw_time()
         end

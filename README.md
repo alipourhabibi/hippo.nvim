@@ -71,6 +71,7 @@ You only need `path`. Here's everything, with the defaults:
         add_tab = "<M-a>",
         timer = "<M-t>",
         pomodoro = "<M-p>",
+        countdown = "<M-d>",
     },
     -- open tasks with this tag count for projects and show in the agenda
     task_tag = "#task",
@@ -150,6 +151,7 @@ Keys are written the Neovim way: `<M-b>` is Alt+b, `<CR>` is Enter, `<C-h>` is C
 | `<M-c>` | open or hide Claude |
 | `<M-t>` | start or stop the work timer |
 | `<M-p>` | start or stop a pomodoro |
+| `<M-d>` | start, stop or clear a countdown |
 
 You can Move between the two panes like any
 split, with `Ctrl+w h` and `Ctrl+w l` (or `Ctrl+h` / `Ctrl+l` if you use
@@ -164,12 +166,13 @@ In the agenda and the header:
 | `x` | mark the task done, or undo it |
 | `C` | carry yesterday's open tasks to today |
 | `S` | sync your vault with git (it asks first) |
+| `t` / `p` / `d` | timer / pomodoro / countdown |
 | `r` | refresh |
 | `q` | go back to the last tab |
 | `?` | show the keys |
 
 Everything is also a command: `:Hippo` plus one of `toggle`, `refresh`, `help`,
-`carry`, `sync`, `capture`, `claude`, `addtab`, `timer`, `pomodoro`, `side` (hide or
+`carry`, `sync`, `capture`, `claude`, `addtab`, `timer`, `pomodoro`, `countdown`, `side` (hide or
 show the right pane), `tab <n>` (show tab n on the right), or `report [range] [activity]`.
 
 ## The dashboard
@@ -241,6 +244,12 @@ Run the checks with `nvim --headless -u NONE -l tests/todo_test.lua`.
   and your last sessions.
 - **Pomodoro (`Alt+p`):** 25 min focus, then a break, with a desktop notification. It
   only reminds you, it doesn't touch the timer.
+- **Countdown (`Alt+d`):** say how long (`25` is minutes, or `1h30m`, `90s`) and what
+  for. It ticks in the header and when it ends you get a notification and `done ✓`
+  stays there until you press `Alt+d` again. Click the desktop notification and it takes
+  you back to the window you started it from (tmux pane too, and the terminal window
+  on niri). Same for the pomodoro. Each one that ends or that you stop gets a line under
+  `## Timers` in today's note, like `- 10:05-10:30 tea 25m ✓`.
 - **Sync (`S`):** asks, then commits, pulls with rebase and pushes. Stops on any git error.
 - **Today's note:** if it doesn't exist yet, hippo fills it from your template but only saves when you do.
 
